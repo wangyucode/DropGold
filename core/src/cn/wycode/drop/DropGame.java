@@ -7,7 +7,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 /**
- * 主类,负责全局属性的初始化
+ * 主类,负责全局属性的初始化 afgajfgak
  * Created by wangyu on 16/5/3.
  */
 public class DropGame extends Game {
