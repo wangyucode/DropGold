@@ -21,29 +21,42 @@ import java.util.Iterator;
 public class GameScreen implements Screen {
 
     private final DropGame game;
-
+    //TODO 添加金币代码
+    private Texture coin;
+    //TODO 添加元宝代码
+    private Texture yGold;
     private Texture dropImage;
     private Texture bucketImage;
+    //TODO 炸弹
+    private Texture blast;
 
     private Music rainMusic;
     private Sound dropSound;
 
     private OrthographicCamera camera;
-
+    //桶的位置
     private Rectangle bucketRect;
+    //矢量
     private Vector3 touchPos;
-
-    private Array<Rectangle> rainDrops;
+   //里面存放了所有下落物体的 位置属性
+    private Array<DropGold> rainDrops;
     private long lastDropTime;
 
     private int score;
 
+    //文字相关的array
+    private Array<GetScore> getScoreDrops;
     public GameScreen(DropGame game) {
 
         this.game = game;
 
-        dropImage = new Texture(Gdx.files.internal("img/droplet.png"));
+        dropImage = new Texture(Gdx.files.internal("img/gold.png"));
+        //TODO 添加金币代码
+        coin=new Texture(Gdx.files.internal("img/gold2.png"));
+        //TODO 添加元宝代码
+        yGold=new Texture(Gdx.files.internal("img/gold1.png"));
         bucketImage = new Texture(Gdx.files.internal("img/bucket.png"));
+        blast=new Texture(Gdx.files.internal("img/blast.png"));
 
         // load the drop sound effect and the rain background "music"
         rainMusic = Gdx.audio.newMusic(Gdx.files.internal("sound/rain.mp3"));
@@ -64,7 +77,8 @@ public class GameScreen implements Screen {
 
         touchPos = new Vector3();
 
-        rainDrops = new Array<Rectangle>();
+        rainDrops = new Array<DropGold>();
+        getScoreDrops=new Array<GetScore>();
         doRainDrop();
 
         score = 0;
@@ -76,7 +90,7 @@ public class GameScreen implements Screen {
         rainRect.y = GameSettings.SCREEN_HEIGHT;
         rainRect.width = 64;
         rainRect.height = 64;
-        rainDrops.add(rainRect);
+        rainDrops.add(new DropGold(rainRect,0));
         lastDropTime = TimeUtils.nanoTime();
 
     }
@@ -94,10 +108,8 @@ public class GameScreen implements Screen {
         // of the color to be used to clear the screen.
         Gdx.gl.glClearColor(0, 0, 0.2f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
         // tell the camera to update its matrices.
         camera.update();
-
         // tell the SpriteBatch to render in the
         // coordinate system specified by the camera.
         game.batch.setProjectionMatrix(camera.combined);
@@ -109,12 +121,34 @@ public class GameScreen implements Screen {
 
         game.batch.draw(bucketImage, bucketRect.x, bucketRect.y);
 
-        for (Rectangle rainRect : rainDrops) {
-            game.batch.draw(dropImage, rainRect.x, rainRect.y);
+        for (DropGold rainRect : rainDrops) {
+            //TODO 添加金币代码
+            if(rainRect.rainRect.x%5==0){
+                game.batch.draw(coin, rainRect.rainRect.x, rainRect.rainRect.y);
+                rainRect.score=1;
+            }else if(rainRect.rainRect.x%3==0){
+                game.batch.draw(yGold, rainRect.rainRect.x, rainRect.rainRect.y);
+                rainRect.score=2;
+            } else if(rainRect.rainRect.x%7==0){
+                game.batch.draw(dropImage, rainRect.rainRect.x, rainRect.rainRect.y);
+                rainRect.score=3;
+            }else{
+                game.batch.draw(blast, rainRect.rainRect.x, rainRect.rainRect.y);
+                rainRect.score=-50;
+            }
+
         }
-
-        game.font.draw(game.batch, "共接到" + score + "滴", 20, GameSettings.SCREEN_HEIGHT - 20);
-
+        //TODO 展示文字代码
+        for(GetScore score:getScoreDrops){
+            game.font.draw(game.batch, score.getScore , score.rainRect.x, score.rainRect.y);
+        }
+        //TODO 判断是否移除获得分数
+        for(int i=0;i<getScoreDrops.size;i++){
+            if(TimeUtils.nanoTime() - getScoreDrops.get(i).createTime > 400000000){
+                getScoreDrops.removeIndex(i);
+            }
+        }
+        game.font.draw(game.batch, "分数" + score , 20, GameSettings.SCREEN_HEIGHT - 20);
         game.batch.end();
 
         //Touch input
@@ -139,16 +173,24 @@ public class GameScreen implements Screen {
         if (TimeUtils.nanoTime() - lastDropTime > 200000000)
             doRainDrop();
 
-        Iterator<Rectangle> iterator = rainDrops.iterator();
+        Iterator<DropGold> iterator = rainDrops.iterator();
         while (iterator.hasNext()) {
-            Rectangle rainDrop = iterator.next();
-            rainDrop.y -= 200 * Gdx.graphics.getDeltaTime();
-            if (rainDrop.y + 64 < 0) {
+            DropGold rainDrop = iterator.next();
+            rainDrop.rainRect.y -= 200 * Gdx.graphics.getDeltaTime();
+            if (rainDrop.rainRect.y + 64 < 0) {
                 iterator.remove();
             }
-            if (rainDrop.overlaps(bucketRect)) {
+            if (rainDrop.rainRect.overlaps(bucketRect)) {
                 dropSound.play();
-                score += 1;
+                //TODO 分数展示
+                Rectangle rainRect = new Rectangle();
+                rainRect.x = bucketRect.x;
+                rainRect.y = 94;
+                rainRect.width = 64;
+                rainRect.height = 20;
+                //TODO 此处需要区分是多少分的数据
+                getScoreDrops.add(new GetScore(rainRect,(rainDrop.score>0?"+":"")+rainDrop.score,TimeUtils.nanoTime()));
+                score += rainDrop.score;
                 iterator.remove();
             }
         }
